@@ -1,32 +1,103 @@
-# Desarrollo de un Crawler Web 🕷️
+Crawler Saladillo 🕷️
 
-Este proyecto consiste en el desarrollo de un **Crawler Web** (araña o bot de rastreo) automatizado programado en Java. Su objetivo principal es recorrer de forma ordenada un conjunto de páginas web a partir de una URL inicial, analizar su contenido HTML mediante la biblioteca **Jsoup** y extraer información estructurada de manera eficiente.
+Un rastreador web (Web Crawler) modular y configurable desarrollado en Java 21 utilizando la librería Jsoup para el procesamiento de documentos HTML. Este proyecto recopila de forma automatizada métricas clave de un sitio web, tales como el título de las páginas, el número de enlaces salientes y los tiempos de respuesta, exportando todos los datos estructurados directamente a un archivo en formato JSON.
+🚀 Características
 
-El sistema controla la profundidad del rastreo, gestiona la exclusión de enlaces duplicados o externos, captura errores mediante logs y exporta los resultados analizados a un archivo estructurado (CSV o JSON).
+    Rastreo Automatizado: Explora de forma iterativa las páginas web a partir de una URL semilla empleando un algoritmo de búsqueda en anchura (BFS).
 
----
+    Métricas en Tiempo Real: Calcula el tiempo de ejecución de la petición HTTP (executionTime) y contabiliza los enlaces válidos encontrados (linkCount).
 
-## 🚀 Características Principales
+    Exportación por Streaming: Diseñado para escribir de manera progresiva en el fichero de salida, minimizando el uso de memoria RAM.
 
-* **Configuración Dinámica:** Control total del comportamiento del bot mediante un archivo externo de propiedades.
-* **Filtrado por Palabras Clave:** Capacidad de restringir la exploración a páginas cuyo título o URL coincidan con criterios específicos (Mínimo 3 palabras clave).
-* **Rastreo Inteligente:** Evita bucles infinitos controlando la profundidad del árbol de navegación y el histórico de URLs ya visitadas.
-* **Robustez:** Gestión de excepciones de red, timeouts y errores de parseo con registro estructurado mediante un Logger.
-* **Exportación de Datos:** Almacenamiento del progreso en formatos estándar (CSV/JSON) incluyendo métricas de rendimiento por página.
+    Configuración Dinámica: Controla el comportamiento del rastreador (límites de páginas, profundidad y rutas) mediante un archivo .properties externo sin necesidad de recompilar el código.
 
----
+🛠️ Tecnologías Utilizadas
 
-## 📂 Estructura del Proyecto
+    Lenguaje: Java 21 (compatible con características modernas de programación).
 
-El código fuente sigue un diseño modular respetando el principio de responsabilidad única:
+    Gestor de Dependencias: Maven 4.0.0.
 
-```text
-src/
-├── crawler/
-│   ├── Crawler.java          --> Control principal del bucle y lógica del rastreo.
-│   ├── PageFetcher.java      --> Conexión, descarga y parseo de HTML usando Jsoup.
-│   ├── LinkExtractor.java    --> Extracción y filtrado de enlaces válidos (internos/únicos).
-│   ├── ResultExporter.java   --> Exportación de los datos analizados a CSV o JSON.
-│   ├── ConfigManager.java    --> Lectura y tipado del archivo config.properties.
-│   └── LoggerUtil.java       --> Configuración del registro de errores y eventos del sistema.
-└── Main.java                 --> Punto de entrada de la aplicación.
+    Librería Principal: Jsoup (v1.22.2) para conectar, descargar y parsear el árbol DOM de las páginas web.
+
+📁 Estructura del Proyecto
+
+El código fuente sigue los estándares de arquitectura limpia estructurado por paquetes:
+Plaintext
+
+src/main/java/es/uca/saladillo/
+├── config/
+│   └── ConfigManager.java     # Carga y gestión de propiedades del archivo externo.
+├── model/
+│   └── PageMetrics.java       # POJO que representa los datos y métricas extraídas de cada URL.
+├── service/
+│   ├── Crawler.java           # Orquestador del ciclo de vida y bucle de rastreo.
+│   ├── LinkExtractor.java     # Extractor y filtrador de enlaces hipertexto (a[href]).
+│   ├── PageFetcher.java       # Manejador de las conexiones HTTP mediante Jsoup.
+│   └── ResultExporter.java    # Gestor de la persistencia y formateo JSON en disco.
+├── util/
+│   └── LoggerUtil.java        # Formateador simple para logs informativos y de error.
+└── Main.java                  # Punto de entrada de la aplicación.
+
+⚙️ Configuración
+
+Antes de ejecutar la aplicación, puedes ajustar los parámetros de comportamiento modificando los valores del archivo config.properties en la raíz del proyecto:
+Properties
+
+# URL de inicio para el rastreo
+seed.url=https://www.uca.es/
+
+# Nivel de profundidad máximo a explorar
+max.depth=3
+
+# Límite total de páginas únicas a visitar
+max.pages=50
+
+# Nombre o ruta del archivo con los resultados guardados
+output.file=results.json
+
+💻 Instalación y Ejecución
+
+Sigue estos pasos para clonar el repositorio, compilar el entorno y lanzar el Crawler:
+1. Clonar el repositorio
+Bash
+
+git clone https://github.com/tu-usuario/crawler-saladillo.git
+cd crawler-saladillo
+
+2. Compilar con Maven
+
+Asegúrate de tener instalado el JDK 21 y Maven configurado en tus variables de entorno:
+Bash
+
+mvn clean compile
+
+3. Ejecutar la Aplicación
+
+Puedes ejecutar la clase principal directamente utilizando el plugin de Maven:
+Bash
+
+mvn exec:java -Dexec.mainClass="es.uca.saladillo.Main"
+
+📊 Ejemplo de Salida
+
+Al finalizar con éxito, el programa generará un reporte con la estructura del archivo configurado (results.json). Cada elemento lucirá de la siguiente manera:
+JSON
+
+[
+  {
+     "url": "https://www.uca.es/",
+     "title": "Portal UCA – Portal principal de la Universidad de Cádiz", 
+     "linkCount": 225,
+     "executionTime": 590
+  },
+  {
+     "url": "https://campusvirtual.uca.es/",
+     "title": "Campus Virtual | Universidad de Cádiz UCA", 
+     "linkCount": 54,
+     "executionTime": 197
+  }
+]
+
+🛡️ Licencia
+
+Este proyecto se distribuye con fines educativos para la Escuela Oficial o entorno académico asociado. Puedes libremente clonarlo, modificarlo y adaptarlo a tus necesidades de aprendizaje.
