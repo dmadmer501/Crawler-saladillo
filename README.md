@@ -1,5 +1,3 @@
-Markdown
-
 # Crawler Saladillo 🕷️
 
 Un rastreador web (Web Crawler) modular y configurable desarrollado en **Java 21** utilizando la librería **Jsoup** para el procesamiento de documentos HTML. Este proyecto recopila de forma automatizada métricas clave de un sitio web, tales como el título de las páginas, el número de enlaces salientes y los tiempos de respuesta, exportando todos los datos estructurados directamente a un archivo en formato JSON.
