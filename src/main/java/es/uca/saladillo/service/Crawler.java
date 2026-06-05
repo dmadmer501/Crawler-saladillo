@@ -9,15 +9,42 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.Queue;
 
+/**
+ * Componente principal encargado de ejecutar el rastreo web (Web Crawling).
+ *
+ * Esta clase coordina el ciclo de vida del rastreo utilizando una estrategia de búsqueda
+ * en anchura (BFS) mediante una cola de URLs. Se apoya en componentes especializados
+ * para descargar el contenido, extraer enlaces y exportar las métricas de rendimiento resultantes.
+ *
+ */
 public class Crawler {
+
+    /** Gestor de configuración que contiene las restricciones y parámetros del rastreo. */
     private final ConfigManager config;
+
+    /** Componente encargado de descargar el contenido HTML de las páginas web. */
     private final PageFetcher fetcher;
+
+    /** Componente encargado de extraer los enlaces (URLs) embebidos en el código HTML. */
     private final LinkExtractor extractor;
+
+    /** Componente encargado de volcar las métricas recolectadas en el archivo de salida. */
     private final ResultExporter exporter;
 
+    /** Conjunto de URLs que ya han sido procesadas para evitar redundancias y bucles infinitos. */
     private final Set<String> visitedUrls;
+
+    /** Cola de URLs pendientes de ser rastreadas (mecanismo FIFO para la estrategia BFS). */
     private final Queue<String> urlQueue;
 
+    /**
+     * Construye e inicializa el rastreador web con la configuración provista.
+     *
+     * Instancia internamente los servicios de descarga, extracción y exportación,
+     * así como las estructuras de datos necesarias para el seguimiento de los enlaces.
+     *
+     * @param config El gestor de configuración con los parámetros iniciales de la aplicación.
+     */
     public Crawler(ConfigManager config) {
         this.config = config;
         this.fetcher = new PageFetcher();
@@ -28,6 +55,14 @@ public class Crawler {
         this.urlQueue = new LinkedList<>();
     }
 
+    /**
+     * Inicia el proceso de rastreo web a partir de la URL semilla (Seed URL).
+     *
+     * El algoritmo se ejecuta en bucle descargando páginas, midiendo tiempos de respuesta,
+     * descubriendo nuevos enlaces y guardando los resultados. El proceso se detiene
+     * cuando no quedan URLs en la cola o cuando se alcanza el límite máximo de páginas
+     * definido en la configuración.
+     */
     public void start() {
         exporter.startExport();
 
@@ -69,6 +104,6 @@ public class Crawler {
         }
 
         exporter.endExport();
-        LoggerUtil.logInfo("Crawling finished succesfully. Total pages visited: " + visitedUrls.size());
+        LoggerUtil.logInfo("Crawling finished successfully. Total pages visited: " + visitedUrls.size());
     }
 }
