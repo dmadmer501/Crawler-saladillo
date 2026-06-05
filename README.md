@@ -1,10 +1,10 @@
-# Crawler Saladillo 🕷️
+# Crawler Saladillo 
 
 Un rastreador web (Web Crawler) modular y configurable desarrollado en **Java 21** utilizando la librería **Jsoup** para el procesamiento de documentos HTML. Este proyecto recopila de forma automatizada métricas clave de un sitio web, tales como el título de las páginas, el número de enlaces salientes y los tiempos de respuesta, exportando todos los datos estructurados directamente a un archivo en formato JSON.
 
 ---
 
-## 🚀 Características
+## Características
 
 * **Rastreo Automatizado:** Explora de forma iterativa las páginas web a partir de una URL semilla empleando un algoritmo de búsqueda en anchura (BFS) gestionado por una cola.
 * **Métricas en Tiempo Real:** Calcula el tiempo de ejecución de la petición HTTP (`executionTime`) y contabiliza los enlaces válidos encontrados (`linkCount`).
@@ -13,7 +13,7 @@ Un rastreador web (Web Crawler) modular y configurable desarrollado en **Java 21
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## Tecnologías Utilizadas
 
 * **Lenguaje:** Java 21.
 * **Gestor de Dependencias:** Maven (Project Object Model basado en `pom.xml`).
@@ -21,7 +21,7 @@ Un rastreador web (Web Crawler) modular y configurable desarrollado en **Java 21
 
 ---
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 El código fuente sigue los estándares del repositorio y está organizado de la siguiente manera:
 
@@ -48,7 +48,7 @@ src/
 
 ---
 
-## ⚙️ Configuración
+## Configuración
 
 El comportamiento del Crawler se gestiona desde el archivo config.properties ubicado en la raíz del proyecto. Puedes modificar los siguientes parámetros antes de la ejecución:
 
@@ -70,7 +70,7 @@ output.file=results.json
 
 ---
 
-## 💻 Instalación y Ejecución
+## Instalación y Ejecución
 
 Sigue estos pasos para clonar, compilar y ejecutar el proyecto localmente:
 1. Clonar el repositorio
@@ -99,7 +99,7 @@ mvn exec:java -Dexec.mainClass="es.uca.saladillo.Main"
 
 ---
 
-## 📊 Ejemplo de Resultados
+## Ejemplo de Resultados
 
 Al finalizar el rastreo, se generará o actualizará el archivo configurado (por ejemplo, results.json), el cual almacena un arreglo con la información recopilada:
 ```
@@ -122,6 +122,6 @@ JSON
 ```
 ---
 
-## 🛡️ Licencia
+## Licencia
 
 Este proyecto se distribuye con fines puramente académicos y educativos asociados a la Universidad de Cádiz (UCA). Siéntete libre de clonarlo, proponer mejoras o adaptar el algoritmo de extracción según tus necesidades de aprendizaje.
