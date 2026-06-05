@@ -1,0 +1,1058 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+src/
+  main/
+    java/
+      es/
+        uca/
+          saladillo/
+            config/
+              ConfigManager.java
+            model/
+              PageMetrics.java
+            service/
+              Crawler.java
+              LinkExtractor.java
+              PageFetcher.java
+              ResultExporter.java
+            util/
+              LoggerUtil.java
+            Main.java
+.gitignore
+config.properties
+pom.xml
+results.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/main/java/es/uca/saladillo/config/ConfigManager.java">
+package es.uca.saladillo.config;
+
+import es.uca.saladillo.util.LoggerUtil;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
+
+/**
+ * Gestor de configuración encargado de cargar y almacenar los parámetros
+ * necesarios para la ejecución de la aplicación (generalmente un web crawler).
+
+ * Lee las propiedades desde un archivo plano y, en caso de error en la lectura
+ * o en el formateo de los datos, establece valores por defecto de forma segura.
+ */
+public class ConfigManager {
+
+    /** URL inicial desde la que comenzará el proceso de rastreo. */
+    private String seedUrl;
+
+    /** Nivel máximo de profundidad para el rastreo de enlaces. */
+    private int maxDepth;
+
+    /** Número máximo de páginas web que se van a procesar. */
+    private int maxPages;
+
+    /** Ruta del archivo donde se guardarán los resultados obtenidos. */
+    private String outputFile;
+
+    /**
+     * Construye un nuevo configurador y desencadena la carga de datos
+     * a partir del archivo especificado.
+     *
+     * @param filePath Ruta absoluta o relativa del archivo de propiedades (.properties).
+     */
+    public ConfigManager(String filePath) {
+        loadConfiguration(filePath);
+    }
+
+    /**
+     * Carga las propiedades desde el archivo proporcionado.
+     * Si ocurre una excepción de E/S o un error de formato numérico,
+     * se registran los errores en el log y se asignan valores predeterminados.
+     *
+     * @param filePath Ruta del archivo de configuración.
+     */
+    private void loadConfiguration(String filePath) {
+        Properties properties = new Properties();
+
+        try (FileInputStream input = new FileInputStream(filePath)) {
+            properties.load(input);
+
+            this.seedUrl = properties.getProperty("seed.url", "https://example.com");
+            this.outputFile = properties.getProperty("output.file", "results.csv");
+
+            this.maxDepth = Integer.parseInt(properties.getProperty("max.depth", "3"));
+            this.maxPages = Integer.parseInt(properties.getProperty("max.pages", "50"));
+
+        } catch (IOException e) {
+            LoggerUtil.logError("Failed to load configuration file: " + filePath, e);
+            this.seedUrl = "https://example.com";
+            this.outputFile = "results.csv";
+            this.maxDepth = 3;
+            this.maxPages = 50;
+
+        } catch (NumberFormatException e) {
+            LoggerUtil.logError("Error parsing numeric properties in configuration", e);
+            this.maxDepth = 3;
+            this.maxPages = 50;
+        }
+    }
+
+    /**
+     * Obtiene la URL semilla configurada para iniciar el rastreo.
+     *
+     * @return La URL inicial como {@code String}.
+     */
+    public String getSeedUrl() {
+        return seedUrl;
+    }
+
+    /**
+     * Obtiene el nivel máximo de profundidad permitido en el rastreo.
+     *
+     * @return El número máximo de niveles de profundidad.
+     */
+    public int getMaxDepth() {
+        return maxDepth;
+    }
+
+    /**
+     * Obtiene el límite máximo de páginas que la aplicación procesará.
+     *
+     * @return El número máximo de páginas a rastrear.
+     */
+    public int getMaxPages() {
+        return maxPages;
+    }
+
+    /**
+     * Obtiene la ruta del archivo de salida donde se exportarán los resultados.
+     *
+     * @return El nombre o ruta del archivo de salida (ej. "results.csv").
+     */
+    public String getOutputFile() {
+        return outputFile;
+    }
+}
+</file>
+
+<file path="src/main/java/es/uca/saladillo/model/PageMetrics.java">
+package es.uca.saladillo.model;
+
+/**
+ * Representa las métricas de rendimiento y contenido recopiladas de una página web específica.
+ *
+ * Esta clase es un contenedor de datos inmutable (un objeto de tipo valor) que almacena
+ * información clave como la URL, el título, la cantidad de enlaces detectados y el tiempo
+ * empleado en procesar la página.
+ */
+public class PageMetrics {
+
+    /** La URL de la página web analizada. */
+    private final String url;
+
+    /** El título de la página extraído de su cabecera HTML. */
+    private final String title;
+
+    /** El número total de enlaces (links) encontrados dentro de la página. */
+    private final int linkCount;
+
+    /** El tiempo de ejecución empleado en procesar o descargar la página (generalmente en milisegundos). */
+    private final long executionTime;
+
+    /**
+     * Construye un nuevo objeto de métricas con toda la información recolectada de la página.
+     *
+     * @param url           La dirección web (URL) de la página.
+     * @param title         El título oficial de la página.
+     * @param linkCount     Cantidad de enlaces salientes o internos detectados.
+     * @param executionTime Tiempo invertido en el procesamiento de la página.
+     */
+    public PageMetrics(String url, String title, int linkCount, long executionTime) {
+        this.url = url;
+        this.title = title;
+        this.linkCount = linkCount;
+        this.executionTime = executionTime;
+    }
+
+    /**
+     * Obtiene la URL de la página web a la que corresponden estas métricas.
+     *
+     * @return Un {@code String} con la dirección URL.
+     */
+    public String getUrl() {
+        return url;
+    }
+
+    /**
+     * Obtiene el título de la página web analizada.
+     *
+     * @return El título de la página.
+     */
+    public String getTitle() {
+        return title;
+    }
+
+    /**
+     * Obtiene la cantidad de enlaces que se contabilizaron en la página.
+     *
+     * @return El número total de enlaces encontrados.
+     */
+    public int getLinkCount() {
+        return linkCount;
+    }
+
+    /**
+     * Obtiene el tiempo de ejecución que tomó procesar la página.
+     *
+     * @return El tiempo medido en milisegundos (o la unidad de tiempo configurada).
+     */
+    public long getExecutionTime() {
+        return executionTime;
+    }
+}
+</file>
+
+<file path="src/main/java/es/uca/saladillo/service/Crawler.java">
+package es.uca.saladillo.service;
+
+import es.uca.saladillo.config.ConfigManager;
+import es.uca.saladillo.model.PageMetrics;
+import es.uca.saladillo.util.LoggerUtil;
+
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Set;
+import java.util.Queue;
+
+/**
+ * Componente principal encargado de ejecutar el rastreo web (Web Crawling).
+ *
+ * Esta clase coordina el ciclo de vida del rastreo utilizando una estrategia de búsqueda
+ * en anchura (BFS) mediante una cola de URLs. Se apoya en componentes especializados
+ * para descargar el contenido, extraer enlaces y exportar las métricas de rendimiento resultantes.
+ *
+ */
+public class Crawler {
+
+    /** Gestor de configuración que contiene las restricciones y parámetros del rastreo. */
+    private final ConfigManager config;
+
+    /** Componente encargado de descargar el contenido HTML de las páginas web. */
+    private final PageFetcher fetcher;
+
+    /** Componente encargado de extraer los enlaces (URLs) embebidos en el código HTML. */
+    private final LinkExtractor extractor;
+
+    /** Componente encargado de volcar las métricas recolectadas en el archivo de salida. */
+    private final ResultExporter exporter;
+
+    /** Conjunto de URLs que ya han sido procesadas para evitar redundancias y bucles infinitos. */
+    private final Set<String> visitedUrls;
+
+    /** Cola de URLs pendientes de ser rastreadas (mecanismo FIFO para la estrategia BFS). */
+    private final Queue<String> urlQueue;
+
+    /**
+     * Construye e inicializa el rastreador web con la configuración provista.
+     *
+     * Instancia internamente los servicios de descarga, extracción y exportación,
+     * así como las estructuras de datos necesarias para el seguimiento de los enlaces.
+     *
+     * @param config El gestor de configuración con los parámetros iniciales de la aplicación.
+     */
+    public Crawler(ConfigManager config) {
+        this.config = config;
+        this.fetcher = new PageFetcher();
+        this.extractor = new LinkExtractor();
+        this.exporter = new ResultExporter(config.getOutputFile());
+
+        this.visitedUrls = new HashSet<>();
+        this.urlQueue = new LinkedList<>();
+    }
+
+    /**
+     * Inicia el proceso de rastreo web a partir de la URL semilla (Seed URL).
+     *
+     * El algoritmo se ejecuta en bucle descargando páginas, midiendo tiempos de respuesta,
+     * descubriendo nuevos enlaces y guardando los resultados. El proceso se detiene
+     * cuando no quedan URLs en la cola o cuando se alcanza el límite máximo de páginas
+     * definido en la configuración.
+     */
+    public void start() {
+        exporter.startExport();
+
+        String seedUrl = config.getSeedUrl();
+        urlQueue.add(seedUrl);
+
+        while(!urlQueue.isEmpty() && visitedUrls.size() < config.getMaxPages()) {
+            String currentUrl = urlQueue.poll();
+
+            if (visitedUrls.contains(currentUrl)) {
+                continue;
+            }
+
+            LoggerUtil.logInfo("Analyzing page " + (visitedUrls.size() + 1) + ": " + currentUrl);
+
+            visitedUrls.add(currentUrl);
+
+            long startTime = System.currentTimeMillis();
+            org.jsoup.nodes.Document doc = fetcher.fetchPage(currentUrl);
+            long endTime = System.currentTimeMillis();
+            long executionTime = endTime - startTime;
+
+            if (doc == null) {
+                continue;
+            }
+
+            java.util.List<String> discoveredLinks = extractor.extractLinks(doc);
+            String title = doc.title();
+            int linkCount = discoveredLinks.size();
+
+            PageMetrics metrics = new PageMetrics(currentUrl, title, linkCount, executionTime);
+            exporter.exportResult(metrics);
+
+            for (String link : discoveredLinks) {
+                if (!visitedUrls.contains(link)) {
+                    urlQueue.add(link);
+                }
+            }
+        }
+
+        exporter.endExport();
+        LoggerUtil.logInfo("Crawling finished successfully. Total pages visited: " + visitedUrls.size());
+    }
+}
+</file>
+
+<file path="src/main/java/es/uca/saladillo/service/LinkExtractor.java">
+package es.uca.saladillo.service;
+
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Componente encargado del análisis de documentos HTML para la extracción de hipervínculos.
+ *
+ * Utiliza la biblioteca Jsoup para parsear la estructura del documento y filtrar de forma
+ * selectiva aquellas etiquetas que contienen enlaces hacia otras páginas web.
+ *
+ */
+public class LinkExtractor {
+
+    /**
+     * Analiza el documento HTML provisto y extrae todas las URLs
+     * absolutas presentes en las etiquetas de tipo enlace.
+     *
+     * El metodo busca específicamente las etiquetas {@code <a>} que posean el atributo
+     * {@code href}. Si el documento es nulo o no se encuentran enlaces, devuelve una
+     * lista vacía.
+     *
+     *
+     * @param doc El documento de Jsoup ({@link Document}) que representa la página web indexada.
+     * @return Una lista ({@link List}) de cadenas de texto ({@link String}) que contiene las URLs absolutas encontradas.
+     */
+    public List<String> extractLinks(Document doc) {
+        List<String> links = new ArrayList<>();
+
+        if (doc == null) {
+            return links;
+        }
+
+        // Selecciona todas las etiquetas de tipo ancla 'a' que tengan un atributo 'href'
+        Elements elements = doc.select("a[href]");
+
+        for (Element element : elements) {
+            // Obtiene la URL absoluta (convierte rutas relativas a completas basándose en la base URI del documento)
+            String url = element.absUrl("href");
+
+            if (!url.isEmpty()) {
+                links.add(url);
+            }
+        }
+        return links;
+    }
+}
+</file>
+
+<file path="src/main/java/es/uca/saladillo/service/PageFetcher.java">
+package es.uca.saladillo.service;
+
+import es.uca.saladillo.util.LoggerUtil;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+
+import java.io.IOException;
+
+/**
+ * Componente encargado de realizar las peticiones HTTP para descargar el contenido de las páginas web.
+ *
+ * Utiliza la biblioteca Jsoup como cliente HTTP para conectarse a las URLs y parsear el código
+ * HTML recuperado en un objeto manejable por la aplicación.
+ *
+ */
+public class PageFetcher {
+
+    /**
+     * Realiza una petición HTTP GET a la URL especificada y devuelve su contenido estructurado.
+     *
+     * Si ocurre un error de red (como un timeout, un error 404, 500 o URL no válida),
+     * la excepción {@link IOException} es interceptada de forma segura, se registra el fallo
+     * en el sistema de logs y el método retorna {@code null}.
+     *
+     *
+     * @param url La dirección web (URL) de la página que se desea descargar.
+     * @return Un objeto {@link Document} de Jsoup que representa el árbol DOM de la página,
+     * o {@code null} si la descarga falla por cualquier problema de entrada/salida.
+     */
+    public Document fetchPage(String url) {
+        try {
+            // Conecta a la URL mediante HTTP GET y parsea el resultado
+            return Jsoup.connect(url).get();
+
+        } catch (IOException e) {
+            LoggerUtil.logError("Failed to load the page: ", e);
+            return null;
+        }
+    }
+}
+</file>
+
+<file path="src/main/java/es/uca/saladillo/service/ResultExporter.java">
+package es.uca.saladillo.service;
+
+import es.uca.saladillo.model.PageMetrics;
+import es.uca.saladillo.util.LoggerUtil;
+
+import java.io.FileWriter;
+import java.io.IOException;
+
+/**
+ * Componente encargado de exportar de forma secuencial las métricas de las páginas web
+ * procesadas a un archivo de texto en formato JSON.
+ *
+ * La clase gestiona la apertura, estructuración y cierre del archivo para construir
+ * un arreglo JSON ({@code [...]}) de manera incremental, optimizando el uso de memoria
+ * al escribir registro por registro.
+ *
+ */
+public class ResultExporter {
+
+    /** Ruta o nombre del archivo donde se guardará el resultado de la exportación. */
+    private final String outputFilePath;
+
+    /** Flag de control para determinar si se está escribiendo el primer elemento,
+     * lo que evita colocar una coma inicial inválida en el formato JSON. */
+    private boolean isFirstRecord;
+
+    /**
+     * Construye un nuevo exportador configurando la ruta del archivo de salida.
+     *
+     * @param outputFilePath Ruta absoluta o relativa del archivo de destino.
+     */
+    public ResultExporter(String outputFilePath) {
+        this.outputFilePath = outputFilePath;
+        this.isFirstRecord = true;
+    }
+
+    /**
+     * Inicializa la estructura del archivo JSON.
+     *
+     * Sobrescribe cualquier archivo existente en la ruta configurada (parámetro {@code append = false})
+     * e introduce el corchete de apertura ({@code [}) indispensable para iniciar un array JSON válido.
+     *
+     */
+    public void startExport() {
+        try (FileWriter writer = new FileWriter(this.outputFilePath, false)) {
+            writer.write("[\n");
+
+        } catch (IOException e) {
+            LoggerUtil.logError("Failed to initialize JSON file structure", e);
+        }
+    }
+
+    /**
+     * Convierte las métricas de una página en un objeto JSON y las añade al archivo de salida.
+     *
+     * El metodo controla automáticamente la inserción de comas ({@code ,}) de separación
+     * entre registros, asegurándose de omitirla únicamente para el primer registro insertado.
+     * Las escrituras se realizan en modo adjuntar ({@code append = true}).
+     *
+     *
+     * @param metrics El objeto {@link PageMetrics} con los datos de rendimiento y contenido recopilados.
+     */
+    public void exportResult(PageMetrics metrics) {
+        try (FileWriter writer = new FileWriter(this.outputFilePath, true)) {
+
+            if (!isFirstRecord) {
+                writer.write(",\n");
+            } else {
+                isFirstRecord = false;
+            }
+
+            String jsonBlock = "{\n" +
+                    "   \"url\": \"" + metrics.getUrl() + "\",\n" +
+                    "   \"title\": \"" + metrics.getTitle() + "\", \n" +
+                    "   \"linkCount\": " + metrics.getLinkCount() + ",\n" +
+                    "   \"executionTime\": " + metrics.getExecutionTime() + "\n" +
+                    " }";
+
+            writer.write(jsonBlock);
+            writer.write("\n");
+
+        } catch (IOException e) {
+            LoggerUtil.logError("Failed to export metrics to JSON file: ", e);
+        }
+    }
+
+    /**
+     * Finaliza formalmente la estructura del archivo JSON.
+     *
+     * Añade el corchete de cierre ({@code ]}) al final del fichero en modo adjuntar para
+     * garantizar que el archivo resultante sea un documento JSON sintácticamente correcto.
+     *
+     */
+    public void endExport() {
+        try (FileWriter writer = new FileWriter(this.outputFilePath, true)) {
+            writer.write("\n]");
+
+        } catch (IOException e) {
+            LoggerUtil.logError("Failed to close JSON file structure", e);
+        }
+    }
+}
+</file>
+
+<file path="src/main/java/es/uca/saladillo/util/LoggerUtil.java">
+package es.uca.saladillo.util;
+
+/**
+ * Clase utilitaria para centralizar y estandarizar el registro de eventos (logging) de la aplicación.
+ * Proporciona métodos estáticos simples para imprimir mensajes informativos y de error por consola,
+ * ayudando a trazar el comportamiento del sistema sin necesidad de instanciar objetos.
+ *
+ */
+public class LoggerUtil {
+
+    /**
+     * Registra un mensaje informativo en la salida estándar del sistema.
+     * Antepone la etiqueta {@code [INFO]} al mensaje proporcionado para facilitar
+     * su filtrado y lectura en la consola convencional ({@link System#out})
+     *
+     * @param message El texto descriptivo del evento informativo que se desea registrar.
+     */
+    public static void logInfo(String message) {
+        System.out.println("[INFO] - " + message);
+    }
+
+    /**
+     * Registra un mensaje de error y su causa en la salida de errores estándar del sistema.
+     * Envía los datos a través de {@link System#err} (que habitualmente se resalta en rojo
+     * en los IDEs). Si se adjunta una excepción no nula, extrae dinámicamente el nombre
+     * simple de la clase del error y su mensaje descriptivo para imprimirlos bajo la etiqueta {@code [CAUSE]}.
+     *
+     * @param message El texto explicativo del error o del contexto donde ocurrió.
+     * @param e       La excepción ({@link Exception}) que originó el problema, o {@code null}
+     * if solo se desea reportar el mensaje de texto sin un objeto de excepción asociado.
+     */
+    public static void logError(String message, Exception e) {
+        System.err.println("[ERROR] - " + message);
+        if (e != null) {
+            // Extrae el nombre de la clase (ej. IOException) y el detalle del error
+            System.err.println("[CAUSE] - " + e.getClass().getSimpleName() + ": " + e.getMessage());
+        }
+    }
+}
+</file>
+
+<file path="src/main/java/es/uca/saladillo/Main.java">
+package es.uca.saladillo;
+
+import es.uca.saladillo.config.ConfigManager;
+import es.uca.saladillo.service.Crawler;
+
+/**
+ * Clase principal que actúa como el punto de entrada (Entry Point) de la aplicación.
+ * Se encarga de coordinar la fase inicial del ciclo de vida del programa: levanta
+ * el gestor de configuración cargando el archivo de propiedades y arranca el
+ * motor de rastreo web ({@link Crawler}).
+ */
+public class Main {
+
+    /**
+     * Metodo principal de ejecución (Main Loop) que invoca la máquina virtual de Java (JVM).
+     * Inicializa secuencialmente las dependencias de la aplicación buscando por defecto
+     * un archivo llamado {@code config.properties} en la raíz del proyecto para posteriormente
+     * delegar el flujo de control al crawler.
+     *
+     */
+    public static void main(String[] args) {
+        // Inicializa el gestor de configuración leyendo el archivo de propiedades por defecto
+        ConfigManager config = new ConfigManager("config.properties");
+
+        // Instancia el servicio de rastreo inyectándole la configuración procesada
+        Crawler crawler = new Crawler(config);
+
+        // Desencadena el bucle de exploración de páginas web
+        crawler.start();
+    }
+}
+</file>
+
+<file path=".gitignore">
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.kotlin
+
+### IntelliJ IDEA ###
+.idea/modules.xml
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/libraries/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+</file>
+
+<file path="config.properties">
+seed.url=https://www.uca.es/
+max.depth=3
+max.pages=50
+output.file=results.json
+</file>
+
+<file path="pom.xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>es.uca.saladillo</groupId>
+    <artifactId>crawler-saladillo</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <dependencies>
+        <dependency>
+            <!-- jsoup HTML parser library @ https://jsoup.org/ -->
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.22.2</version>
+        </dependency>
+    </dependencies>
+</project>
+</file>
+
+<file path="results.json">
+[
+{
+   "url": "https://www.uca.es/",
+   "title": "Portal UCA – Portal principal de la Universidad de Cádiz", 
+   "linkCount": 225,
+   "executionTime": 463
+ }
+,
+{
+   "url": "https://www.uca.es/cookies",
+   "title": "Cookies – Portal UCA", 
+   "linkCount": 170,
+   "executionTime": 586
+ }
+,
+{
+   "url": "https://oficinadelestudiante.uca.es/",
+   "title": "Oficina del Estudiante – Sitio web de la Universidad de Cádiz", 
+   "linkCount": 93,
+   "executionTime": 136
+ }
+,
+{
+   "url": "https://www.uca.es/empresas/",
+   "title": "Empresas – Portal UCA", 
+   "linkCount": 184,
+   "executionTime": 142
+ }
+,
+{
+   "url": "https://www.uca.es/wp_personal/",
+   "title": "Personal – Portal UCA", 
+   "linkCount": 210,
+   "executionTime": 136
+ }
+,
+{
+   "url": "https://sedelectronica.uca.es/",
+   "title": "Sede Electrónica", 
+   "linkCount": 70,
+   "executionTime": 495
+ }
+,
+{
+   "url": "https://www.uca.es/#",
+   "title": "Portal UCA – Portal principal de la Universidad de Cádiz", 
+   "linkCount": 225,
+   "executionTime": 180
+ }
+,
+{
+   "url": "https://informatica.uca.es/",
+   "title": "Servicios Informáticos de la Universidad de Cádiz – Universidad de Cádiz", 
+   "linkCount": 67,
+   "executionTime": 146
+ }
+,
+{
+   "url": "https://webmerlin.uca.es/",
+   "title": "", 
+   "linkCount": 0,
+   "executionTime": 81
+ }
+,
+{
+   "url": "https://campusvirtual.uca.es/",
+   "title": "Campus Virtual | Universidad de Cádiz UCA", 
+   "linkCount": 54,
+   "executionTime": 190
+ }
+,
+{
+   "url": "https://cau.uca.es/cau/indiceGlobal.do",
+   "title": "CAU Servicios Informáticos - Tecnologías y Sistemas de Información - Iniciar Sesión - Universidad de Cádiz", 
+   "linkCount": 8,
+   "executionTime": 205
+ }
+,
+{
+   "url": "https://directorio.uca.es/cau/directorio.do",
+   "title": "Universidad de Cádiz - Directorio de la Universidad de Cádiz", 
+   "linkCount": 47,
+   "executionTime": 136
+ }
+,
+{
+   "url": "https://bouca.uca.es/",
+   "title": "BOUCA – Sitio web de la Universidad de Cádiz", 
+   "linkCount": 256,
+   "executionTime": 1358
+ }
+,
+{
+   "url": "https://biblioteca.uca.es/",
+   "title": "Área de Biblioteca – Portal de la Biblioteca", 
+   "linkCount": 164,
+   "executionTime": 133
+ }
+,
+{
+   "url": "https://www.uca.es/?lang=en",
+   "title": "Portal UCA – Portal principal de la Universidad de Cádiz", 
+   "linkCount": 213,
+   "executionTime": 159
+ }
+,
+{
+   "url": "https://www.uca.es/?lang=fr",
+   "title": "Portal UCA – Portal principal de la Universidad de Cádiz", 
+   "linkCount": 201,
+   "executionTime": 160
+ }
+,
+{
+   "url": "https://sea-eu.org/",
+   "title": "Home - SEA-EU", 
+   "linkCount": 232,
+   "executionTime": 5651
+ }
+,
+{
+   "url": "https://www.uca.es/oferta-academica/",
+   "title": "Oferta Académica – Portal UCA", 
+   "linkCount": 187,
+   "executionTime": 151
+ }
+,
+{
+   "url": "https://www.uca.es/grados/",
+   "title": "Grados – Portal UCA", 
+   "linkCount": 470,
+   "executionTime": 138
+ }
+,
+{
+   "url": "https://oficinadeposgrado.uca.es/oferta-de-masteres-oficiales-2021-22/",
+   "title": "Oficina de Coordinación de Posgrado – Otro sitio realizado con WordPress", 
+   "linkCount": 256,
+   "executionTime": 530
+ }
+,
+{
+   "url": "https://oficinadeposgrado.uca.es/oferta-de-programas-de-doctorado-por-la-universidad-de-cadiz/",
+   "title": "Oferta de Programas de Doctorado por la Universidad de Cádiz – Oficina de Coordinación de Posgrado", 
+   "linkCount": 137,
+   "executionTime": 558
+ }
+,
+{
+   "url": "http://atencionalumnado.uca.es/aulamayores/",
+   "title": "Aula Universitaria de Mayores 2025-2026 – Área de Atención al Alumnado", 
+   "linkCount": 153,
+   "executionTime": 209
+ }
+,
+{
+   "url": "https://www.uca.es/futuros-estudiantes/",
+   "title": "Futuros estudiantes – Portal UCA", 
+   "linkCount": 177,
+   "executionTime": 161
+ }
+,
+{
+   "url": "https://atencionalumnado.uca.es",
+   "title": "Área de Atención al Alumnado – Otro sitio realizado con WordPress", 
+   "linkCount": 138,
+   "executionTime": 108
+ }
+,
+{
+   "url": "https://oficinadelestudiante.uca.es",
+   "title": "Oficina del Estudiante – Sitio web de la Universidad de Cádiz", 
+   "linkCount": 93,
+   "executionTime": 140
+ }
+,
+{
+   "url": "https://atencionalumnado.uca.es/becas-y-ayudas/",
+   "title": "Becas y ayudas – Área de Atención al Alumnado", 
+   "linkCount": 169,
+   "executionTime": 122
+ }
+,
+{
+   "url": "https://internacional.uca.es/mov-saliente/estudiantes/",
+   "title": "ESTUDIANTES – Vicerrectorado de Internacionalización", 
+   "linkCount": 154,
+   "executionTime": 157
+ }
+,
+{
+   "url": "https://atencionalumnado.uca.es/sicue/",
+   "title": "Movilidad SICUE – Área de Atención al Alumnado", 
+   "linkCount": 149,
+   "executionTime": 137
+ }
+,
+{
+   "url": "https://practicasexternas.uca.es/",
+   "title": "Prácticas Externas – Sitio web de la Universidad de Cádiz", 
+   "linkCount": 80,
+   "executionTime": 116
+ }
+,
+{
+   "url": "https://portalempleo.uca.es/home",
+   "title": "", 
+   "linkCount": 0,
+   "executionTime": 351
+ }
+,
+{
+   "url": "https://oficinadelestudiante.uca.es/alojamiento/",
+   "title": "Alojamiento universitario – Oficina del Estudiante", 
+   "linkCount": 97,
+   "executionTime": 119
+ }
+,
+{
+   "url": "https://politicacientifica.uca.es/recursos-cientificos/infraestructuras-servicios-centrales-perifericos/",
+   "title": "Servicios Centrales de Investigación – Vicerrectorado de Investigación y Transferencia", 
+   "linkCount": 133,
+   "executionTime": 262
+ }
+,
+{
+   "url": "https://proyeccioninvestigacion.uca.es/espacios-singulares/",
+   "title": "Espacios Singulares – Proyección de la Investigación", 
+   "linkCount": 107,
+   "executionTime": 128
+ }
+,
+{
+   "url": "https://investigacionytransferencia.uca.es/recursos-cientificos/institutos-de-investigacion-2/",
+   "title": "Nuestros Institutos de Investigación – Vicerrectorado de Investigación y Transferencia", 
+   "linkCount": 138,
+   "executionTime": 156
+ }
+,
+{
+   "url": "https://www.uca.es/grupos/",
+   "title": "Grupos de Investigación – Portal UCA", 
+   "linkCount": 401,
+   "executionTime": 142
+ }
+,
+{
+   "url": "https://politicacientifica.uca.es/impacto-idi/creacion-de-empresas/ebt-participadas/",
+   "title": "EBC participadas – Vicerrectorado de Investigación y Transferencia", 
+   "linkCount": 123,
+   "executionTime": 273
+ }
+,
+{
+   "url": "https://politicacientifica.uca.es/impacto-idi/catedras-externas/",
+   "title": "Catedras Externas – Vicerrectorado de Investigación y Transferencia", 
+   "linkCount": 156,
+   "executionTime": 259
+ }
+,
+{
+   "url": "https://politicacientifica.uca.es/impacto-idi/creacion-de-empresas/spin-off/",
+   "title": "Spin – off – Vicerrectorado de Investigación y Transferencia", 
+   "linkCount": 178,
+   "executionTime": 279
+ }
+,
+{
+   "url": "https://politicacientifica.uca.es/servicios-tecnicos-homologados/",
+   "title": "Servicios Técnicos Homologados – Vicerrectorado de Investigación y Transferencia", 
+   "linkCount": 133,
+   "executionTime": 241
+ }
+,
+{
+   "url": "https://politicacientifica.uca.es/capital-humano-investigador/contratos-predoctorales-en-industria/",
+   "title": "Programa de Tesis Doctorales Industriales – Vicerrectorado de Investigación y Transferencia", 
+   "linkCount": 220,
+   "executionTime": 248
+ }
+,
+{
+   "url": "http://proyeccioninvestigacion.uca.es/",
+   "title": "Proyección de la Investigación – Sitio web de la Universidad de Cádiz", 
+   "linkCount": 107,
+   "executionTime": 928
+ }
+,
+{
+   "url": "http://ugi.uca.es/",
+   "title": "Servicio de Gestión de Investigación – Servicio Gestión Investigación", 
+   "linkCount": 102,
+   "executionTime": 208
+ }
+,
+{
+   "url": "https://ugi.uca.es/category/proyectosdeinvestigacion/",
+   "title": "Proyectos de Investigación – Servicio de Gestión de Investigación", 
+   "linkCount": 176,
+   "executionTime": 157
+ }
+,
+{
+   "url": "https://politicacientifica.uca.es/gestion_conocimiento/propiedad-industrial/",
+   "title": "Protección de Resultados de la Investigación – Vicerrectorado de Investigación y Transferencia", 
+   "linkCount": 125,
+   "executionTime": 274
+ }
+,
+{
+   "url": "https://politicacientifica.uca.es/impacto-idi/contratos-con-el-exterior/",
+   "title": "Trabajos de carácter Científico, Tecnológico, Humanístico o Artístico – Vicerrectorado de Investigación y Transferencia", 
+   "linkCount": 131,
+   "executionTime": 253
+ }
+,
+{
+   "url": "https://planpropioinvestigacion.uca.es/",
+   "title": "Plan Propio de Investigación – Sitio web de la Universidad de Cádiz", 
+   "linkCount": 91,
+   "executionTime": 136
+ }
+,
+{
+   "url": "https://politicacientifica.uca.es/capital-humano-investigador/politica-de-atraccion-de-talento-nuevo/",
+   "title": "Política de Atracción de Talento – Vicerrectorado de Investigación y Transferencia", 
+   "linkCount": 121,
+   "executionTime": 286
+ }
+
+]
+</file>
+
+</files>
